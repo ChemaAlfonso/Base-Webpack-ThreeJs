@@ -14,10 +14,12 @@ class CajonScene {
     renderer: THREE.WebGLRenderer;
     camera  : THREE.PerspectiveCamera;
     scene   : THREE.Scene;
+    lights  : THREE.Light[] = [];
 
     constructor( private sceneHtmlElement: Element, private renderWith: number, private rederHeight: number ){
         this.sceneHtmlElement = sceneHtmlElement;
         this.init();
+        this.handleResponsive();
     }
 
     // =================================
@@ -25,8 +27,9 @@ class CajonScene {
     // =================================
     init(): void {
         this.initRenderer();
-        this.setScene();
+        this.initScene();
         this.setCamera(100, window.innerWidth / window.innerHeight, .1, 50);
+        this.setLights();
         this.showScene();
         this.renderer.render(this.scene, this.camera);
     }
@@ -37,12 +40,28 @@ class CajonScene {
         this.sceneHtmlElement.appendChild( this.renderer.domElement );
     }
 
-    private setCamera( fov: number, aspect: number, near: number, far: number ) {
+    private initScene() : void {
+        this.scene = new THREE.Scene();
+    }
+
+    private setCamera( fov: number, aspect: number, near: number, far: number ): void {
         this.camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
     }
 
-    private setScene() : void {
-        this.scene = new THREE.Scene();
+    private setLights(): void {
+        this.lights[0] = new THREE.PointLight( 0xffffff, 1, 100);
+        this.lights[0].position.set( 2, 1, 4 );
+        this.scene.add( this.lights[0] );
+    }
+
+    private handleResponsive(): void {
+        window.addEventListener('resize', () => this.fixViewPoint());
+    }
+
+    private fixViewPoint(): void {
+        this.renderer.setSize(window.innerWidth , window.innerHeight);
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
     }
 
     // =================================
@@ -67,7 +86,13 @@ class CajonScene {
     // =================================
     private createCube( boxWidth: number, boxHeight: number, boxDepth: number, materialParams?: object ): THREE.Mesh { //{color: 0x44aa88}
         const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
-        const material = new THREE.MeshBasicMaterial(materialParams);
+        const material = new THREE.MeshLambertMaterial(materialParams);
+        return new THREE.Mesh(geometry, material);
+    }
+
+    private createSphere( radius?: number, widthSegments?: number, heightSegments?: number, materialParams?: object ): THREE.Mesh { //{color: 0x44aa88}
+        const geometry = new THREE.SphereGeometry(radius, widthSegments, heightSegments);
+        const material = new THREE.MeshLambertMaterial(materialParams);
         return new THREE.Mesh(geometry, material);
     }
 
@@ -79,9 +104,13 @@ class CajonScene {
     }
 
     private showCubeScene(): void {
-        this.setCameraPosition('z', 1);
-        this.setCameraPosition('x', 1);
-        const testCube = this.createCube(1, 1, 1, {color: 0x44aa88})
+        const testCube = this.createCube(1.2, 1.8, 1, {color: 0x44aa88})
+        // const testSphere = this.createSphere(1, 12, 12, {color: 0x22aaff})
+        
+        
+        this.setCameraPosition('z', 6);
+        this.setCameraPosition('x', 0);
+        testCube.position.z = 2;
         this.scene.add(testCube);
     }
 }
