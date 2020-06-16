@@ -3,9 +3,21 @@ import '../config/config';
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 import gsap from "gsap";
 import { Vector2, BackSide } from 'three';
+
+// =================================
+// Assets
+// =================================
+const redeclipseBk =  require('../assets/img/skybox/redeclipse_bk.png')
+const redeclipseDn =  require('../assets/img/skybox/redeclipse_dn.png')
+const redeclipseFt =  require('../assets/img/skybox/redeclipse_ft.png')
+const redeclipseLf =  require('../assets/img/skybox/redeclipse_lf.png')
+const redeclipseRt =  require('../assets/img/skybox/redeclipse_rt.png')
+const redeclipseUp =  require('../assets/img/skybox/redeclipse_up.png')
+const ionModel     =  require('../assets/3d/cajon.gltf')
 
 // =================================
 //  Projecto webpack & RxJs
@@ -19,7 +31,7 @@ class CajonScene {
     camera  : THREE.PerspectiveCamera;
     scene   : THREE.Scene;
     lights  : THREE.Light[] = [];
-    sceneElements: THREE.Mesh[] = [];
+    sceneElements: THREE.Mesh[] | any = [];
     cameraControls: OrbitControls;
     lightHolder: THREE.Group;
 
@@ -39,8 +51,6 @@ class CajonScene {
         this.initCameraControls();
         this.setLights();
         this.showScene();
-        this.setAnimation();
-        this.createEvents();
         this.runRenderer();
     }
 
@@ -63,8 +73,8 @@ class CajonScene {
 
     private initCameraControls(): void {
         this.cameraControls = new OrbitControls( this.camera, this.renderer.domElement );
-        this.cameraControls.maxDistance = 5;
-        this.cameraControls.minDistance = 2;
+        this.cameraControls.maxDistance = 9;
+        this.cameraControls.minDistance = 4;
         this.cameraControls.enableDamping = true;
         this.cameraControls.dampingFactor = 0.03;
     }
@@ -117,16 +127,27 @@ class CajonScene {
 
     private setAnimation() {
 
+        console.log(this.sceneElements[0])
         const tl = gsap.timeline({ delay: .3 });
-        tl.to(this.sceneElements[0].scale, 1, { x: 1 }) 
-        tl.to(this.sceneElements[0].scale, 1, { y: 1}, '<') 
-        tl.to(this.sceneElements[0].rotation, 1, {y: -.7}) 
-        tl.to(this.sceneElements[0].scale, 1, { z: 1 }) 
-        tl.to(this.camera.position, 1, { x: -1 }, '<') 
+        tl.to(this.sceneElements[0].rotation, 1, {z: .3}) 
+        tl.to(this.sceneElements[0].rotation, 1, {x: 1.2}, '<') 
+        tl.to(this.sceneElements[0].rotation, 1, {y: .3}, '<') 
+        tl.to(this.sceneElements[0].scale, 1, { y: 2}) 
+        tl.to(this.sceneElements[0].scale, 1, { x: 2 }, '<') 
+        tl.to(this.sceneElements[0].scale, 1, { z: 2.8 }, '<') 
+        tl.to(this.camera.position, 1, { x: 2 }, '<') 
+        tl.to(this.camera.position, 1, { y: 3 }, '<') 
         tl.to(this.cameraControls.target, 1, { x: -1 }, '<') 
 
         this.cameraControls.update();
         
+        // tl.to(this.sceneElements[0].scale, 1, { x: 1 }) 
+        // tl.to(this.sceneElements[0].scale, 1, { y: 1}, '<') 
+        // tl.to(this.sceneElements[0].rotation, 1, {y: -.7}) 
+        // tl.to(this.sceneElements[0].scale, 1, { z: 1 }) 
+        // tl.to(this.camera.position, 1, { x: -1 }, '<') 
+        // tl.to(this.cameraControls.target, 1, { x: -1 }, '<') 
+
         // tl.to(this.sceneElements[0].rotation, 1, {y: -.5, x: .1}) 
         // tl.to(this.sceneElements[0].scale, 1, { x: 1 }) 
         // tl.to(this.sceneElements[0].scale, 1, { y: 1,}, '<') 
@@ -164,12 +185,14 @@ class CajonScene {
 
             const intesects = rayCaster.intersectObjects( this.scene.children, true);
             intesects.forEach( ( inters: THREE.Intersection ) => {
+                console.log(inters)
                 switch (inters.object.name) {
-                    case 'cajon':
+                    case 'ion':
                         this.playCajonEvents( inters );
                         break;
                 
                     default:
+                        this.playCajonEvents( inters );
                         break;
                 }
             })
@@ -182,11 +205,11 @@ class CajonScene {
 
         if( inters.face.normal.x > 0)
             console.log('toca al lado', inters.point)
-        else if( inters.face.normal.z > 0 && inters.point.y < 0 ) {
+        else if( inters.face.normal.z == -1) {
             console.log('toca delante arriba', inters.point)
             tapAudio.play();
         }
-        else if( inters.face.normal.z > 0 && inters.point.y > 0 ) {
+        else if( inters.face.normal.z == -1) {
             console.log('toca delante abajo', inters.point)
             topAudio.play();
         }
@@ -196,8 +219,9 @@ class CajonScene {
     // Scenes
     // =================================
     private showScene(): void {
-        this.showCubeScene();
-        // this.cubeableWorld();
+        // this.showCubeScene();
+        this.showIon();
+        this.cubeableWorld();
         // this.starsWorld();
     }
 
@@ -205,8 +229,8 @@ class CajonScene {
         const cajonCube = this.createCube(1.2, 2, 1.5, {color: 0xeabf8a})
         this.sceneElements.push(cajonCube);
         
-        this.setCameraPosition('z', 2.5);
-        this.setCameraPosition('x', 0);
+        // this.setCameraPosition('z', 2.5);
+        // this.setCameraPosition('x', 0);
 
         cajonCube.scale.set(.1,.1,.1);
         cajonCube.position.set(0, 0, 0);
@@ -215,6 +239,22 @@ class CajonScene {
         this.scene.background = new THREE.Color( 0x24282b );
         this.scene.add(cajonCube);
 
+    }
+
+    private showIon() {
+        const loader = new GLTFLoader().load(ionModel.default, (gltf) => {
+            const gltfMesh = gltf.scene.children[3];
+            gltfMesh.rotation.set(0,0,  -Math.PI * .5);
+            gltfMesh.scale.set(.1,.1,.1);
+            gltfMesh.name = 'ion';
+            this.sceneElements.push(gltfMesh);
+            this.scene.add( gltf.scene );
+            this.setCameraPosition('z', 6);
+            this.setCameraPosition('x', 0);
+            this.setAnimation();
+            // this.createEvents();
+        });
+        
     }
 
     private cubeableWorld() {
@@ -231,13 +271,17 @@ class CajonScene {
         // ];
 
         const textureLoads  = [
-            './assets/img/skybox/redeclipse_ft.png',
-            './assets/img/skybox/redeclipse_bk.png',
-            './assets/img/skybox/redeclipse_up.png',
-            './assets/img/skybox/redeclipse_dn.png',
-            './assets/img/skybox/redeclipse_rt.png',
-            './assets/img/skybox/redeclipse_lf.png'
+            redeclipseFt.default,
+            redeclipseBk.default,
+            redeclipseUp.default,
+            redeclipseDn.default,
+            redeclipseRt.default,
+            redeclipseLf.default
         ];
+        
+
+
+
 
         textureLoads.forEach( texturePath => {
             const texture = new THREE.TextureLoader().load( texturePath );

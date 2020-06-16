@@ -39,6 +39,30 @@ module.exports = {
                     'sass-loader'
                   ],
                 exclude: /node_modules/
+            },
+            {
+                test: /\.(png|jpe?g|gif)$/i,
+                use: [
+                  {
+                    loader: 'file-loader',
+                    options: {
+                        outputPath: 'assets/img/skybox',
+                    }
+                  },
+                  
+                ],
+            },
+            {
+                test: /\.gltf?$/i,
+                use: [
+                  {
+                    loader: 'file-loader',
+                    options: {
+                        outputPath: 'assets/3d',
+                    }
+                  },
+                  
+                ],
             }
         ]
     },
