@@ -2,6 +2,10 @@
 import '../config/config';
 
 import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+
+import gsap from "gsap";
+import { Vector2, BackSide } from 'three';
 
 // =================================
 //  Projecto webpack & RxJs
@@ -15,6 +19,9 @@ class CajonScene {
     camera  : THREE.PerspectiveCamera;
     scene   : THREE.Scene;
     lights  : THREE.Light[] = [];
+    sceneElements: THREE.Mesh[] = [];
+    cameraControls: OrbitControls;
+    lightHolder: THREE.Group;
 
     constructor( private sceneHtmlElement: Element, private renderWith: number, private rederHeight: number ){
         this.sceneHtmlElement = sceneHtmlElement;
@@ -29,19 +36,37 @@ class CajonScene {
         this.initRenderer();
         this.initScene();
         this.setCamera(100, window.innerWidth / window.innerHeight, .1, 50);
+        this.initCameraControls();
         this.setLights();
         this.showScene();
-        this.renderer.render(this.scene, this.camera);
+        this.setAnimation();
+        this.createEvents();
+        this.runRenderer();
     }
 
     private initRenderer(): void {
-        this.renderer = new THREE.WebGLRenderer();
+        this.renderer = new THREE.WebGLRenderer({antialias: true});
         this.renderer.setSize(this.renderWith, this.rederHeight);
         this.sceneHtmlElement.appendChild( this.renderer.domElement );
     }
 
+    private runRenderer(): void {
+        this.lightHolder.quaternion.copy(this.camera.quaternion);
+        this.cameraControls.update();
+        this.renderer.render(this.scene, this.camera);
+        requestAnimationFrame( () => this.runRenderer() );
+    }
+
     private initScene() : void {
         this.scene = new THREE.Scene();
+    }
+
+    private initCameraControls(): void {
+        this.cameraControls = new OrbitControls( this.camera, this.renderer.domElement );
+        this.cameraControls.maxDistance = 5;
+        this.cameraControls.minDistance = 2;
+        this.cameraControls.enableDamping = true;
+        this.cameraControls.dampingFactor = 0.03;
     }
 
     private setCamera( fov: number, aspect: number, near: number, far: number ): void {
@@ -49,9 +74,18 @@ class CajonScene {
     }
 
     private setLights(): void {
-        this.lights[0] = new THREE.PointLight( 0xffffff, 1, 100);
-        this.lights[0].position.set( 2, 1, 4 );
-        this.scene.add( this.lights[0] );
+        this.lightHolder = new THREE.Group();
+
+        this.lights[0]   = new THREE.PointLight( 0xffffff, 1, 500);
+        this.lights[0].position.set( -2, 1, 5 );
+        
+        this.lights[1]   = new THREE.PointLight( 0xffffff, .65, 500);
+        this.lights[1].position.set( 2, 2, 2 );
+
+        this.lightHolder.add( this.lights[0] );
+        this.lightHolder.add( this.lights[1] );
+
+        this.scene.add(this.lightHolder);
     }
 
     private handleResponsive(): void {
@@ -81,19 +115,81 @@ class CajonScene {
         }
     }
 
+    private setAnimation() {
+
+        const tl = gsap.timeline({ delay: .3 });
+        tl.to(this.sceneElements[0].scale, 1, { x: 1 }) 
+        tl.to(this.sceneElements[0].scale, 1, { y: 1}, '<') 
+        tl.to(this.sceneElements[0].rotation, 1, {y: -.7}) 
+        tl.to(this.sceneElements[0].scale, 1, { z: 1 }) 
+        tl.to(this.camera.position, 1, { x: -1 }, '<') 
+        tl.to(this.cameraControls.target, 1, { x: -1 }, '<') 
+
+        this.cameraControls.update();
+        
+        // tl.to(this.sceneElements[0].rotation, 1, {y: -.5, x: .1}) 
+        // tl.to(this.sceneElements[0].scale, 1, { x: 1 }) 
+        // tl.to(this.sceneElements[0].scale, 1, { y: 1,}, '<') 
+        // tl.to(this.sceneElements[0].scale, 1, { z: 1.1 }) 
+        // }
+    }
+
     // =================================
     // Objects
     // =================================
-    private createCube( boxWidth: number, boxHeight: number, boxDepth: number, materialParams?: object ): THREE.Mesh { //{color: 0x44aa88}
+    private createCube( boxWidth: number, boxHeight: number, boxDepth: number, materialParams?: object, material?: THREE.Material | THREE.Material[] ): THREE.Mesh {
         const geometry = new THREE.BoxGeometry(boxWidth, boxHeight, boxDepth);
+
+        if( !material )
+            material = new THREE.MeshLambertMaterial(materialParams);
+            
+        return new THREE.Mesh(geometry, material);
+    }
+
+    private createSphere( radius?: number, widthSegments?: number, heightSegments?: number, materialParams?: object ): THREE.Mesh {
+        const geometry = new THREE.SphereGeometry(radius, widthSegments, heightSegments);
         const material = new THREE.MeshLambertMaterial(materialParams);
         return new THREE.Mesh(geometry, material);
     }
 
-    private createSphere( radius?: number, widthSegments?: number, heightSegments?: number, materialParams?: object ): THREE.Mesh { //{color: 0x44aa88}
-        const geometry = new THREE.SphereGeometry(radius, widthSegments, heightSegments);
-        const material = new THREE.MeshLambertMaterial(materialParams);
-        return new THREE.Mesh(geometry, material);
+    // =================================
+    // Events
+    // =================================
+    private createEvents() {
+        window.addEventListener('click', (e: MouseEvent) => {
+            e.preventDefault();
+            const rayCaster = new THREE.Raycaster();
+            const mouse     = new Vector2( ( e.clientX / window.innerWidth ) * 2 -1, ( e.clientY / window.innerHeight ) * 2 -1  );
+            rayCaster.setFromCamera( mouse, this.camera );
+
+            const intesects = rayCaster.intersectObjects( this.scene.children, true);
+            intesects.forEach( ( inters: THREE.Intersection ) => {
+                switch (inters.object.name) {
+                    case 'cajon':
+                        this.playCajonEvents( inters );
+                        break;
+                
+                    default:
+                        break;
+                }
+            })
+        });
+    }
+
+    private playCajonEvents( inters: THREE.Intersection ) {
+        const tapAudio = new Audio('./assets/audio/1.mp3')
+        const topAudio = new Audio('./assets/audio/2.mp3')
+
+        if( inters.face.normal.x > 0)
+            console.log('toca al lado', inters.point)
+        else if( inters.face.normal.z > 0 && inters.point.y < 0 ) {
+            console.log('toca delante arriba', inters.point)
+            tapAudio.play();
+        }
+        else if( inters.face.normal.z > 0 && inters.point.y > 0 ) {
+            console.log('toca delante abajo', inters.point)
+            topAudio.play();
+        }
     }
 
     // =================================
@@ -101,17 +197,77 @@ class CajonScene {
     // =================================
     private showScene(): void {
         this.showCubeScene();
+        // this.cubeableWorld();
+        // this.starsWorld();
     }
 
     private showCubeScene(): void {
-        const testCube = this.createCube(1.2, 1.8, 1, {color: 0x44aa88})
-        // const testSphere = this.createSphere(1, 12, 12, {color: 0x22aaff})
+        const cajonCube = this.createCube(1.2, 2, 1.5, {color: 0xeabf8a})
+        this.sceneElements.push(cajonCube);
         
-        
-        this.setCameraPosition('z', 6);
+        this.setCameraPosition('z', 2.5);
         this.setCameraPosition('x', 0);
-        testCube.position.z = 2;
-        this.scene.add(testCube);
+
+        cajonCube.scale.set(.1,.1,.1);
+        cajonCube.position.set(0, 0, 0);
+        cajonCube.rotation.set(0, -Math.PI * .5, 0);
+        cajonCube.name = 'cajon';
+        this.scene.background = new THREE.Color( 0x24282b );
+        this.scene.add(cajonCube);
+
+    }
+
+    private cubeableWorld() {
+        
+        const materialArray: THREE.Material[] = [];
+
+        // const textureLoads  = [
+        //     './assets/img/skybox/posx.jpg', // derecha
+        //     './assets/img/skybox/negx.jpg', // izquierda
+        //     './assets/img/skybox/posy.jpg', // arriba
+        //     './assets/img/skybox/negy.jpg', // abajo
+        //     './assets/img/skybox/posz.jpg', // atras
+        //     './assets/img/skybox/negz.jpg'  // frente
+        // ];
+
+        const textureLoads  = [
+            './assets/img/skybox/redeclipse_ft.png',
+            './assets/img/skybox/redeclipse_bk.png',
+            './assets/img/skybox/redeclipse_up.png',
+            './assets/img/skybox/redeclipse_dn.png',
+            './assets/img/skybox/redeclipse_rt.png',
+            './assets/img/skybox/redeclipse_lf.png'
+        ];
+
+        textureLoads.forEach( texturePath => {
+            const texture = new THREE.TextureLoader().load( texturePath );
+            materialArray.push( new THREE.MeshBasicMaterial({ map: texture, side: BackSide }) );
+        });
+
+        const cubeWorld = this.createCube(50,50,50, null, materialArray );
+        cubeWorld.position.set(0,0,0);
+        this.scene.add( cubeWorld );
+    }
+
+    private starsWorld() {
+        const starsGeometry = new THREE.Geometry();
+        const starTexture   = new THREE.TextureLoader().load('./assets/img/star.png');
+        const starMaterial   = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: .2,
+            map: starTexture
+        });
+
+        for (let i = 0; i < 8000; i++) {
+            starsGeometry.vertices.push( new THREE.Vector3(
+                Math.random() * 600 - 300,
+                Math.random() * 600 - 300,
+                Math.random() * 600 - 300
+            ));
+        }
+        const fullStar = new THREE.Points( starsGeometry, starMaterial );
+
+        this.scene.add( fullStar );
     }
 }
 

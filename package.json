@@ -5,6 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "@types/three": "^0.103.2",
+    "gsap": "^3.3.3",
     "rxjs": "^6.5.3",
     "three": "^0.117.1",
     "typescript": "^3.6.3",
