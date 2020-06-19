@@ -7,12 +7,13 @@ export interface BaseScene {
     camera              : THREE.PerspectiveCamera;
     scene               : THREE.Scene;
     cameraControls?     : OrbitControls;
-    setRenderer?:       () => void;
-    runRenderer?:       () => void;
-    setCamera?:         () => void;
-    setLights?:         () => void;
+    init:               () => void;
     setScene?:          () => void;
+    setCamera?:         () => void;
     setControls?:       () => void;
+    setLights?:         () => void;
+    setRenderer?:       () => void;
     showScene?:         () => void;
     handleResponsive?:  () => void;
+    startAnimation?:    () => void;
 }

@@ -6,22 +6,84 @@ import gsap from "gsap";
 import { BaseScene } from '../../interfaces/masterScene';
 
 
-class ExampleScene implements BaseScene {
+class CustomScene implements BaseScene {
 
     renderer      : THREE.WebGLRenderer;
     camera        : THREE.PerspectiveCamera;
     scene         : THREE.Scene;
     cameraControls: OrbitControls;
 
-    constructor( private sceneHtmlElement: Element, 
+    constructor( private sceneHtmlElement: HTMLElement, 
                  private renderWith: number, 
                  private rederHeight: number 
     ){
-        this.sceneHtmlElement = sceneHtmlElement;
+        this.init();
     }
 
+    init() {
+        this.setScene();
+        this.showDevTools();
+        this.setCamera();
+        this.setControls();
+        this.setRenderer();
+        this.showScene();
+        this.handleResponsive();
+        this.startAnimation();
+    }
+
+    // =================================
+    // Dev
+    // =================================
+    showDevTools() {
+        const axesHelper = new THREE.AxesHelper(5);
+        this.scene.add(axesHelper);
+    }
+
+    // =================================
+    // Config & setters
+    // =================================
+    setScene() {
+        this.scene = new THREE.Scene();
+    }
+
+    setRenderer() {
+        this.renderer = new THREE.WebGLRenderer();
+        this.renderer.setSize( this.renderWith, this.rederHeight );
+        this.sceneHtmlElement.appendChild( this.renderer.domElement )
+    }
+
+    setCamera() {
+        this.camera = new THREE.PerspectiveCamera(75, this.renderWith / this.rederHeight, .1, 20);
+        this.camera.position.z = 3;
+        this.scene.add( this.camera );
+    }
+
+    setControls() {
+        this.cameraControls = new OrbitControls( this.camera, this.sceneHtmlElement);
+    }
+
+    startAnimation() {
+        this.renderer.render( this.scene, this.camera );
+        requestAnimationFrame( this.startAnimation.bind(this) );
+    }
+
+    handleResponsive() {
+        window.addEventListener('resize',() => {
+            this.camera.aspect = window.innerWidth / window.innerHeight;
+        })
+    }
+
+    // =================================
+    // Scene objects
+    // =================================
+    showScene() {
+        const cubeGeometry = new THREE.BoxGeometry();
+        const cubeMaterial = new THREE.MeshBasicMaterial({color: 0x00ff00});
+        const cube = new THREE.Mesh( cubeGeometry, cubeMaterial );
+        this.scene.add( cube );
+    }
 
 }
 
-const sceneHtmlElement = document.querySelector('#cajonScene');
-const exampleScene     = new ExampleScene( sceneHtmlElement, window.innerWidth , window.innerHeight );
+const sceneHtmlElement = document.querySelector('#customScene');
+const customScene      = new CustomScene( <HTMLElement>sceneHtmlElement, window.innerWidth , window.innerHeight );
