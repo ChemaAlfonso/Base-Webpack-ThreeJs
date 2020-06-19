@@ -1,6 +1,6 @@
 const path = require('path');
 
-const HtmlWebpackPlugin = require('html-webpack-plugin');
+const HtmlWebpackPlugin    = require('html-webpack-plugin');
 const MiniCSSExtractPlugin = require('mini-css-extract-plugin');
 
 module.exports = {
@@ -46,14 +46,14 @@ module.exports = {
                   {
                     loader: 'file-loader',
                     options: {
-                        outputPath: 'assets/img/skybox',
+                        outputPath: 'assets/img',
                     }
                   },
                   
                 ],
             },
             {
-                test: /\.gltf?$/i,
+                test: /\.glt?f?$/i,
                 use: [
                   {
                     loader: 'file-loader',

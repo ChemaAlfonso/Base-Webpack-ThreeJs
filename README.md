@@ -1,4 +1,4 @@
-# Proyecto - Base Webpack, Bootstrap & RxJs
+# Proyecto - Base Webpack Three js
 
 * Instalación de dependencias:
 
