@@ -69,8 +69,10 @@ class CustomScene implements BaseScene {
 
     handleResponsive() {
         window.addEventListener('resize',() => {
-            this.camera.aspect = window.innerWidth / window.innerHeight;
-        })
+            this.camera.aspect = this.sceneHtmlElement.offsetWidth / this.sceneHtmlElement.offsetHeight;
+            this.camera.updateProjectionMatrix();
+            this.renderer.setSize(this.sceneHtmlElement.offsetWidth , this.sceneHtmlElement.offsetHeight)
+        });
     }
 
     // =================================
@@ -85,5 +87,5 @@ class CustomScene implements BaseScene {
 
 }
 
-const sceneHtmlElement = document.querySelector('#customScene');
-const customScene      = new CustomScene( <HTMLElement>sceneHtmlElement, window.innerWidth , window.innerHeight );
+const sceneHtmlElement = <HTMLElement>document.querySelector('#customScene');
+const customScene      = new CustomScene( sceneHtmlElement, sceneHtmlElement.offsetWidth , sceneHtmlElement.offsetHeight );
